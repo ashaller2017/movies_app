@@ -4,8 +4,9 @@ import {BrowserRouter as Router, Link, Routes, Route, Outlet, useParams, useRout
 import Movies from './components/Movies';
 import Home from './components/Home';
 import Admin from './components/Admin';
-import Categories from './components/Categories';
 import OneMovie from './components/OneMovie';
+import Genres from "./components/Genres"
+import OneGenre from "./components/OneGenre"
 export default function App() {
   return (
       <Router>
@@ -27,7 +28,7 @@ export default function App() {
               <Link to="/movies">Movies</Link>
             </li>
             <li className="list-group-item">
-              <Link to="/by-category">Categories</Link>
+              <Link to="/genres">Genres</Link>
             </li>
             <li className="list-group-item">
               <Link to="/admin">Manage Catalogue</Link>
@@ -40,43 +41,16 @@ export default function App() {
 
       <div className="col-md-10">
         <Routes>
-          <Route path="/movies" element={ <Outlet />}>
-            <Route index element={<Movies />}/>
-            <Route path=":id" element={ <OneMovie />}/>
-          </Route>
-          <Route path="/by-category" element={ <Outlet />}>
-            <Route index element={<CategoryPage/>}/>
-            <Route path=":category" element={<Categories title={`title`}/>}/>
-          </Route>
+          <Route path="/" element={<Home />}/>
+          <Route path="/movies" element={<Movies />}/>
+          <Route path="/movies/:id" element={<OneMovie />}/>
+          <Route path="/genres" element={<Genres />}/>
+          <Route path="/genre/:id" element={<OneGenre />}/>
           <Route path="/admin" element={<Admin />}/>
-          <Route path="/" element={ <Home />}/>
         </Routes>
-
       </div>
     </div>
   </div>
       </Router>
-  );
-}
-
-function CategoryPage(){
-
-  const categories=[
-    {route: "comedy", title: "Comedy"},
-    {route: "drama", title: "Drama"},
-  ];
-  return (
-      <div>
-        <h2>Categories</h2>
-        <ul>
-          {categories.map((cat)=>(
-              <li>
-                <Link to={cat.route} state={{title: cat.title}}>
-                  {cat.title}
-                </Link>
-              </li>
-          ))}
-        </ul>
-      </div>
   );
 }
