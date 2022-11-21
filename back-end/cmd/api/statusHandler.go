@@ -7,9 +7,8 @@ import (
 
 func (app *application) statusHandler(w http.ResponseWriter, r *http.Request) {
 	currentStatus := AppStatus{
-		Status:      "Available",
-		Environment: app.config.env,
-		Version:     version,
+		Status:  "Available",
+		Version: version,
 	}
 	js, err := json.MarshalIndent(currentStatus, "", "\t")
 	if err != nil {

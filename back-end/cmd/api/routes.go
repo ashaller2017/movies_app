@@ -1,17 +1,21 @@
 package main
 
 import (
-	"github.com/julienschmidt/httprouter"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"net/http"
 )
 
 func (app *application) routes() http.Handler {
-	router := httprouter.New()
-	router.HandlerFunc(http.MethodGet, "/status", app.statusHandler)
-	router.HandlerFunc(http.MethodGet, "/v1/movie/:id", app.getOneMovie)
-	router.HandlerFunc(http.MethodGet, "/v1/movies", app.getAllMovies)
-	router.HandlerFunc(http.MethodGet, "/v1/movies/:genre_id", app.getAllMoviesByGenre)
+	mux := chi.NewRouter()
+	mux.Use(middleware.Recoverer)
+	mux.Use(app.enableCORS)
 
-	router.HandlerFunc(http.MethodGet, "/v1/genres", app.getAllGenres)
-	return app.enableCORS(router)
+	mux.Post("/authenticate", app.authenticate)
+	mux.Get("/refresh", app.refreshToken)
+	mux.Get("/logout", app.logout)
+
+	mux.Get("/movies", app.getAllMovies)
+
+	return mux
 }

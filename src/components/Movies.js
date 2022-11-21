@@ -1,58 +1,56 @@
-import React, {Component, Fragment} from 'react';
-import {Link} from 'react-router-dom';
+import React, {useEffect, useState} from "react";
+import {Link} from "react-router-dom";
 
-export default class Movies extends Component {
+const Movies = () => {
+    const[movies, setMovies]=useState([])
 
-    state = {
-        movies: [],
-        isLoaded: false,
-        error: null,
-    };
+    useEffect(()=>{
+      const headers = new Headers();
+      headers.append("Content-Type", "application/json");
 
-    componentDidMount() {
-        fetch("http://localhost:4000/v1/movies")
-            // .then((response) => response.json())
-            .then((response) => {
-                if (response.status !== "200") {
-                    let err = Error;
-                    err.message = "invalid response code: " + response.status;
-                    this.setState({error: err});
-                }
-                return response.json();
-            })
-            .then((json) => {
-                this.setState({
-                        movies: json.movies,
-                        isLoaded: true,
-                    },
-                    (error) => {
-                        this.setState({
-                            isLoaded: true,
-                            error
-                        });
-                    }
-                );
-            });
-    }
+      const requestOptions={
+          method: "GET",
+          headers: headers,
+      }
+      fetch(`http://localhost:8080/movies`, requestOptions)
+          .then((response)=>response.json())
+          .then((data)=>{
+              setMovies(data);
+          })
+          .catch(err=>{
+              console.log(err);
+          })
+    },[]);
 
-    render() {
-        const {movies, isLoaded, error} = this.state;
-        if (error) {
-            return <div>Error: {error.message}</div>
-        } else if (!isLoaded) {
-            return <p>Loading...</p>
-        } else {
-            return (
-                <Fragment>
-                    <h2>Choose a movie</h2>
-                    <div className="list-group">
-                        {movies.map((m) => (
-                            <Link key={m.id} className="list-group-item list-group-item-action"
-                                  to={`/movies/${m.id}`}>{m.title}</Link>
+
+    return (
+            <div className="text-center">
+                <h2>Movies</h2>
+                <hr />
+                <table className="table table-striped table-hover">
+                    <thead>
+                    <tr>
+                        <th>Movie</th>
+                        <th>Release Date</th>
+                        <th>Rating</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        {movies.map((m)=>(
+                            <tr key={m.id}>
+                                <td>
+                                    <Link to={`/movies/${m.id}`}>
+                                        {m.title}
+                                    </Link>
+                                </td>
+                                <td>{m.release_date}</td>
+                                <td>{m.mpaa_rating}</td>
+                            </tr>
                         ))}
-                    </div>
-                </Fragment>
-            );
-        }
-    }
+                    </tbody>
+                </table>
+            </div>
+    )
+
 }
+export default Movies;

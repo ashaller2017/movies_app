@@ -1,56 +1,115 @@
-import React, {Fragment} from 'react';
-import * as ReactDOM from "react-dom";
-import {BrowserRouter as Router, Link, Routes, Route, Outlet, useParams, useRouteMatch} from "react-router-dom";
-import Movies from './components/Movies';
-import Home from './components/Home';
-import Admin from './components/Admin';
-import OneMovie from './components/OneMovie';
-import Genres from "./components/Genres"
-import OneGenre from "./components/OneGenre"
-export default function App() {
-  return (
-      <Router>
-  <div className="container">
-    <div className="row">
-      <h1 className="mt-3">
-        Go Watch a Movie!
-        <hr className="mb-3"></hr>
-      </h1>
-    </div>
-    <div className="row">
-      <div className="col-md-2">
-        <nav>
-          <ul className="list-group">
-            <li className="list-group-item">
-              <Link to="/">Home</Link>
-            </li>
-            <li className="list-group-item">
-              <Link to="/movies">Movies</Link>
-            </li>
-            <li className="list-group-item">
-              <Link to="/genres">Genres</Link>
-            </li>
-            <li className="list-group-item">
-              <Link to="/admin">Manage Catalogue</Link>
+import React, {useEffect, useState} from "react";
+import {Outlet, Link, useNavigate} from "react-router-dom"
+import Alert from "./components/Alert";
 
-            </li>
-          </ul>
-        </nav>
+function App () {
+    const [jwtToken, setJwtToken]=useState("");
+    const [alertMessage, setAlertMessage]=useState("");
+    const [alertClassName, setAlertClassName]=useState("d-none");
+    const [ticking, setTicking]= useState(false);
+    const [tickInterval, setTickInterval]=useState();
+    const navigate = useNavigate("");
 
+
+    const logOut= () =>{
+        const requestOptions={
+            method: "GET",
+            credentials: "include",
+        }
+        fetch(`/logout`,requestOptions)
+            .catch(error=>{
+                console.log("error logging out ", error)
+            })
+            .finally(()=>{
+                setJwtToken("")
+            })
+        navigate("/login");
+    }
+
+    useEffect(()=>{
+        if (jwtToken===""){
+            const requestOptions={
+                method: "Get",
+                credentials: "include",
+            }
+            fetch(`/refresh`,requestOptions)
+                .then((response)=>response.json())
+                .then((data)=>{
+                    if (data.access_token){
+                        setJwtToken(data.access_token)
+                    }
+                })
+                .catch(error=>{
+                    console.log("user is not logged in", error)
+                })
+        }
+    }, [jwtToken])
+
+    const toggleRefresh= ()=>{
+        console.log("clicked")
+
+        if(!ticking){
+            console.log("turning on ticking")
+            let i = setInterval(()=>{
+                console.log("this will run every second")
+            }, 1000);
+            setTickInterval(i);
+            console.log("setting tick interval to ", i);
+            setTicking(true);
+        }else{
+            console.log("turning off ticking");
+            console.log("turning off tickInterval ")
+            setTickInterval(null);
+            clearInterval(tickInterval)
+            setTicking(false);
+        }
+    }
+
+    return(
+    <div className="container">
+      <div className="row">
+        <div className="col">
+          <h1 className="mt-3">Go Watch a movie!</h1>
+        </div>
+        <div className="col text-end">
+            {jwtToken === ""
+                ? < Link to="/login"><span className="badge bg-success">Login</span></Link>
+            :<a href="#!" onClick={logOut}><span className="badge bg-danger">Logout</span> </a>
+            }
+        </div>
+          <hr className="mb-3"></hr>
       </div>
-
-      <div className="col-md-10">
-        <Routes>
-          <Route path="/" element={<Home />}/>
-          <Route path="/movies" element={<Movies />}/>
-          <Route path="/movies/:id" element={<OneMovie />}/>
-          <Route path="/genres" element={<Genres />}/>
-          <Route path="/genre/:id" element={<OneGenre />}/>
-          <Route path="/admin" element={<Admin />}/>
-        </Routes>
-      </div>
+        <div className="row">
+            <div className="col-md-2">
+                <nav>
+                    <div className="list-group">
+                        <Link to="/" className="list-group-item list-group-item-action">Home</Link>
+                        <Link to="/movies" className="list-group-item list-group-item-action">Movies</Link>
+                        <Link to="/genres" className="list-group-item list-group-item-action">Genres</Link>
+                        {jwtToken !== "" &&
+                            <>
+                                <Link to="/admin/movie/0" className="list-group-item list-group-item-action">Add
+                                    Movie</Link>
+                                <Link to="/manage-catalogue" className="list-group-item list-group-item-action">Manage Catalogue</Link>
+                                <Link to="/graphql" className="list-group-item list-group-item-action">GraphQL</Link>
+                            </>
+                            }
+                        </div>
+                </nav>
+            </div>
+            <div className="col-md-10">
+                <a className="btn btn-outline-secondary"  href="#!" onClick={toggleRefresh}>Toggle Tivcking</a>
+                <Alert
+                    message={alertMessage}
+                    className={alertClassName}
+                    />
+                <Outlet context={{
+                    jwtToken, setJwtToken,
+                    setAlertClassName, setAlertMessage,
+                }}/>
+            </div>
+        </div>
     </div>
-  </div>
-      </Router>
-  );
+);
 }
+export default App;

@@ -1,82 +1,73 @@
 package main
 
 import (
-	"back-end/models"
-	"context"
-	"database/sql"
+	"back-end/internal/models"
+	"back-end/internal/repository"
+	"back-end/internal/repository/dbrepo"
 	"flag"
 	"fmt"
+	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"os"
 	"time"
-
-	_ "github.com/lib/pq"
 )
 
 const version = "1.0.0"
 
-type config struct {
-	port int
-	env  string
-	db   struct {
-		dsn string
-	}
-}
 type AppStatus struct {
 	Status      string `json:"status"`
 	Environment string `json:"environment"`
 	Version     string `json:"version"`
 }
 type application struct {
-	config config
-	logger *log.Logger
-	models models.Models
+	Domain       string
+	DSN          string
+	DB           repository.DatabaseRepo
+	auth         Auth
+	JWTSecret    string
+	JWTIssuer    string
+	JWTAudience  string
+	CookieDomain string
+	logger       *log.Logger
+	models       models.Models
 }
 
 func main() {
-	var cfg config
-	flag.IntVar(&cfg.port, "port", 4000, "Server to port to listen on")
-	flag.StringVar(&cfg.env, "env", "development", "Application environment (development|production")
-	flag.StringVar(&cfg.db.dsn, "dsn", "postgres://arishaller@localhost/go_movies?sslmode=disable", "Postgres connection string")
+	//set application config
+	var app application
+	//read command line args
+	flag.StringVar(&app.DSN, "dsn", "host=localhost port=5432 user=postgres password=postgres dbname=movies sslmode=disable timezone=UTC connect_timeout=5", "Postgres connection string")
+	flag.StringVar(&app.JWTSecret, "jwt-secret", "verysecret", "signing secret")
+	flag.StringVar(&app.JWTIssuer, "jwt-issuer", "example.com", "signing issuer")
+	flag.StringVar(&app.JWTAudience, "jwt-audience", "example.com", "signing audience")
+	flag.StringVar(&app.CookieDomain, "cookie-domain", "localhost", "cookie domain")
+	flag.StringVar(&app.Domain, "domain", "example.com", "domain")
 	flag.Parse()
 
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
-
-	db, err := openDB(cfg)
+	//conect to database
+	conn, err := app.connectToDB()
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 	}
-	defer db.Close()
+	app.DB = &dbrepo.PostgresDBRepo{DB: conn}
+	defer conn.Close()
 
-	app := &application{
-		config: cfg,
-		logger: logger,
-		models: models.NewModels(db),
+	app.auth = Auth{
+		Issuer:        app.JWTIssuer,
+		Audience:      app.JWTAudience,
+		Secret:        app.JWTSecret,
+		TokenExpiry:   time.Minute * 15,
+		RefreshExpiry: time.Hour * 24,
+		CookiePath:    "/",
+		CookieName:    "__Host-refresh_token",
+		CookieDomain:  app.CookieDomain,
 	}
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
-	}
-	logger.Println("starting server on port", cfg.port)
-	err = srv.ListenAndServe()
+
+	logger.Println("starting server on port 8080")
+	err = http.ListenAndServe(fmt.Sprintf(":%d", 8080), app.routes())
 	if err != nil {
 		log.Println(err)
 	}
-}
-func openDB(cfg config) (*sql.DB, error) {
-	db, err := sql.Open("postgres", cfg.db.dsn)
-	if err != nil {
-		return nil, err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	err = db.PingContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return db, nil
 }

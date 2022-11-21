@@ -1,9 +1,21 @@
-import React, {Component} from 'react';
+import Ticket from './../images/movie_tickets.jpg'
+import React from "react";
+import {Link} from "react-router-dom";
 
-export default class Home extends Component{
-    render(){
-        return (
-            <h2>This is the home page</h2>
-        );
-    }
+const Home = () => {
+    return (
+    <>
+        <div className="text-center">
+            <h2>Find a movie to watch tonight!</h2>
+            <hr />
+            <Link to="/movies">
+            <img src={Ticket} alt="movie tickets"></img>
+            </Link>
+
+
+        </div>
+    </>
+    )
+
 }
+export default Home;
